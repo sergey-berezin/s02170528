@@ -3,9 +3,9 @@
 ## Lab 1 - Image recognition library and console application
 To fullfill requirements(download ResNet):  
 
-`cd ./ImageRecognitionLib  
+`cd ./ImageRecognitionLib`  
 
-./requirements.sh`  
+`./requirements.sh`  
 
 To run application:  
 
