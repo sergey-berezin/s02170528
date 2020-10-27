@@ -19,11 +19,15 @@ namespace ImageRecognitionLib
         private readonly string _imagePath;
         private readonly InferenceSession _session;
         private ConcurrentQueue<string> _filenames;
+        public delegate void Output(string message);
+        Output log; 
 
-        public Model(string imagePath = "./../../../../ImageRecognitionLib")
+        public Model(Output log, string imagePath = "/Users/maximkurkin/Downloads/Lab1/s02170528/cifar10/test/dog")
         {
             _imagePath = imagePath;
-            _session = new InferenceSession("./../../../../ImageRecognitionLib/resnet152-v2-7.onnx");
+            _session = new InferenceSession("/Users/maximkurkin/Downloads/Lab1/s02170528/ImageRecognitionLib/resnet152-v2-7.onnx");
+            log += log;
+
         }
 
         private DenseTensor<float> ImageToTensor(string imagePath)
@@ -84,22 +88,23 @@ namespace ImageRecognitionLib
             return prediction;
         }
 
+        public void Stop() => StopSignal.Set();
         private void Worker()
         {
             while (_filenames.TryDequeue(out var name))
             {
                 if (StopSignal.WaitOne(0))
                 {
-                    Console.WriteLine("Stopping thread by signal");
+                    log("Stopping thread by signal");
                     return;
                 }
 
                 var prediction = Predict(ImageToTensor(name));
-                Console.WriteLine(name + prediction);
+                log(name + prediction);
 
             }
 
-            Console.WriteLine("Thread has finished working");
+            log("Thread has finished working");
         }
 
         public void Work()
@@ -113,6 +118,7 @@ namespace ImageRecognitionLib
                 Console.WriteLine("These files don't exist!");
                 return;
             }
+            
             // stop routine manually by pressing Ctrl+C
             Console.CancelKeyPress += (sender, eArgs) =>
             {
@@ -133,7 +139,7 @@ namespace ImageRecognitionLib
                 threads[i].Join();
             }
 
-            Console.WriteLine("Done!");
+            log("Done!");
         }
     }
 }
