@@ -22,10 +22,10 @@ namespace ImageRecognitionLib
         public delegate void Output(string message);
         Output log; 
 
-        public Model(Output log, string imagePath = "/Users/maximkurkin/Downloads/Lab1/s02170528/cifar10/test/dog")
+        public Model(Output log, string imagePath = "./../../../../ImageRecognitionLib")
         {
             _imagePath = imagePath;
-            _session = new InferenceSession("/Users/maximkurkin/Downloads/Lab1/s02170528/ImageRecognitionLib/resnet152-v2-7.onnx");
+            _session = new InferenceSession("./../../../../ImageRecognitionLib/ImageRecognitionLib/resnet152-v2-7.onnx");
             log += log;
 
         }
