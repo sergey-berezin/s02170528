@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Windows.Input;
-using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
 using ImageRecognitionLib;
 using System.IO;
-using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -34,7 +30,7 @@ namespace ImageRecognitionApp.ViewModels
         int _processedImagesAmount;
         int ProcessedImagesAmount 
         {
-            get { return _processedImagesAmount; }
+            get => _processedImagesAmount;
             set 
             {
                 _processedImagesAmount = value;
@@ -60,28 +56,28 @@ namespace ImageRecognitionApp.ViewModels
         public ICommand ChooseDirCommand { get; set; }
         public ICommand InterruptProcessingCommand { get; set; }
         
-        int _selectedIndexComboBox;
-        public int SelectedIndexComboBoxProperty
+        string _selectedIndexComboBox;
+        public string SelectedIndexComboBoxProperty
         {
-             get { return _selectedIndexComboBox; } 
+             get => _selectedIndexComboBox;
              set 
              {
                  _selectedIndexComboBox = value;
                  PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedIndexComboBoxProperty)));
-                 if (value != -1)
+                 if (value != string.Empty)
                     _services.IsVisibleFilteredImageViewer(true);
              }
         }
    
         ObservableCollection<LabeledImage> _processedImageCollection;
-        public ObservableCollection<LabeledImage> ProcessedImageCollection 
+
+        private ObservableCollection<LabeledImage> ProcessedImageCollection 
         {
-            get { return _processedImageCollection; }
+            get => _processedImageCollection;
             set
             {
                 _processedImageCollection = value;
 
-                //why need if have collection changed?
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ProcessedImageCollection)));
             } 
         }
@@ -97,7 +93,7 @@ namespace ImageRecognitionApp.ViewModels
             } 
         }
 
-        public ModelView(UIServices services)
+        public MainWindowViewModel(UIServices services)
         {
             Init();
 
@@ -105,8 +101,8 @@ namespace ImageRecognitionApp.ViewModels
             PropertyChanged += ReactToSelectedIndexComboBox;
             ProcessedImageCollection = null;
             _processedImagesAmount = 0;
-            _log = new ProcessResultDelegate(ProcessLabeledImage);
-            _model = new NNP("/Users/macbookpro/autumn_prac/s02170686/mnist-8.onnx", _log);
+            _log = ProcessLabeledImage;
+            _model = new Model(_log);
             _model.PropertyChanged += CheckExecuteCondition;
         }
 
@@ -130,8 +126,7 @@ namespace ImageRecognitionApp.ViewModels
             var query = ProcessedImageCollection.Where(x => x.Label == SelectedIndexComboBoxProperty);
             FilteredImageCollection = query.ToList<LabeledImage>();
         }
-
-        //await?
+        
         void ProcessLabeledImage(LabeledImage labeledImage)
         {
             Dispatcher.UIThread.InvokeAsync(() =>
@@ -154,21 +149,21 @@ namespace ImageRecognitionApp.ViewModels
                                                           (object o) => CanExecuteInterruptCommand());
         }
 
-        bool CanExecuteInterruptCommand()
+        private bool CanExecuteInterruptCommand()
         {
             return _model.IsProcessing;
         }
 
-        void TryToInterrupt()
+        private void TryToInterrupt()
         {
             _model.TerminateProcessing();
         }
 
         int CountAmountOfImagesInDirectory() 
         {
-            int counter = 0;
+            var counter = 0;
 
-            foreach (string item in Directory.GetFiles(_imagePath))
+            foreach (var item in Directory.GetFiles(_imagePath))
                 counter++;
 
             return counter;
@@ -189,7 +184,7 @@ namespace ImageRecognitionApp.ViewModels
             if (_imagePath != null) 
             {
                 _totalAmountOfImagesInDirectory = CountAmountOfImagesInDirectory();
-                await _model.ProcessDirectoryAsync(_imagePath);
+                await _model.WorkAsync(_imagePath);
             }
             _services.IsVisibleProgressBar(false);
         }

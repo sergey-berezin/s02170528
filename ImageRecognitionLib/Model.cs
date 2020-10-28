@@ -8,8 +8,11 @@ using Microsoft.ML.OnnxRuntime;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace ImageRecognitionLib
 {
@@ -31,22 +34,40 @@ namespace ImageRecognitionLib
             return Name + " " + Label;
         }
     }
-    public delegate void Output(string message);
-    public class Model
+    public delegate void Output(LabeledImage image);
+    public class Model: INotifyPropertyChanged
     {
         private static readonly ManualResetEvent StopSignal = new ManualResetEvent(false);
         private readonly string _imagePath;
         private readonly InferenceSession _session;
         private ConcurrentQueue<string> _filenames;
+        CancellationTokenSource _cts;
 
         readonly Output _log; 
+        
+        bool _finishedProcessing, _wasTerminated;
+        public event PropertyChangedEventHandler PropertyChanged;
+        public bool FinishedProcessing { get {return _finishedProcessing; } }
+
+        bool _isProcessing;
+        public bool IsProcessing 
+        { 
+            get { return _isProcessing; } 
+            set 
+            {
+                _isProcessing = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsProcessing)));
+            }
+        }
 
         public Model(Output log, string imagePath = "./../../../../ImageRecognitionLib")
         {
             _imagePath = imagePath;
             _session = new InferenceSession("./../../../../ImageRecognitionLib/ImageRecognitionLib/resnet152-v2-7.onnx");
             _log += log;
-
+            _finishedProcessing = false;
+            _cts = new CancellationTokenSource();
+            IsProcessing = false;
         }
 
         private DenseTensor<float> ImageToTensor(string imagePath)
@@ -105,34 +126,49 @@ namespace ImageRecognitionLib
                 prediction += $"Label: {label}, confidence: {confidence}\n";
             }
 
-            _log(prediction);
+            Console.WriteLine(prediction);
             return top10.First().Item1;
         }
 
         public void Stop() => StopSignal.Set();
-        private void Worker()
+        private void Worker(string[] filenames, CancellationToken ct)
         {
-            while (_filenames.TryDequeue(out var name))
+            foreach (var name in filenames)
             {
-                if (StopSignal.WaitOne(0))
+                if (ct.IsCancellationRequested)
                 {
-                    _log("Stopping thread by signal");
-                    return;
+                    Console.WriteLine("Stopping thread by signal");
+                    break;
                 }
 
                 var label = Predict(ImageToTensor(name));
-                _log(new LabeledImage(name, label));
+                Console.WriteLine(new LabeledImage(name, label).ToString());
 
             }
 
-            _log("Thread has finished working");
+            Console.WriteLine("Thread has finished working");
         }
 
-        public void Work()
+        public async Task WorkAsync(string imgPath)
+        {
+            IsProcessing = true;
+            var processingTask = new Task( (object path) => 
+                {
+                    _finishedProcessing = false;
+                    _wasTerminated = false;
+                    Work((string)path, _cts.Token);
+                    _finishedProcessing = !_wasTerminated;
+                },
+                imgPath);
+            processingTask.Start();
+            await processingTask;
+            IsProcessing = false;
+        }
+        public void Work(string imgPath, CancellationToken ct)
         {
             try
             {
-                _filenames = new ConcurrentQueue<string>(Directory.GetFiles(_imagePath, "*.jpg"));
+                _filenames = new ConcurrentQueue<string>(Directory.GetFiles(imgPath, "*.jpg"));
             }
             catch (DirectoryNotFoundException)
             {
@@ -151,16 +187,24 @@ namespace ImageRecognitionLib
             for (var i = 0; i < maxProcCount; ++i)
             {
                 Console.WriteLine($"Starting thread {i}");
-                threads[i] = new Thread(Worker);
+                threads[i] = new Thread( fileNames => Worker((string[])fileNames, ct));
                 threads[i].Start();
             }
 
             for (var i = 0; i < maxProcCount; ++i)
             {
-                threads[i].Join();
+                if (!ct.IsCancellationRequested)
+                    threads[i].Join();
+                else
+                    break;
             }
 
-            _log("Done!");
+            Console.WriteLine("Done!");
+        }
+        public void TerminateProcessing()
+        {
+            _cts.Cancel();
+            _wasTerminated = true;
         }
     }
 }
