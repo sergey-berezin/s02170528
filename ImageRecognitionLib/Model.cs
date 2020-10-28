@@ -63,7 +63,7 @@ namespace ImageRecognitionLib
         public Model(Output log, string imagePath = "./../../../../ImageRecognitionLib")
         {
             _imagePath = imagePath;
-            _session = new InferenceSession("./../../../../ImageRecognitionLib/ImageRecognitionLib/resnet152-v2-7.onnx");
+            _session = new InferenceSession("./ImageRecognitionLib/resnet152-v2-7.onnx");
             _log += log;
             _finishedProcessing = false;
             _cts = new CancellationTokenSource();
