@@ -14,7 +14,9 @@ namespace ImageRecognitionApp
 
         public IControl Build(object data)
         {
-            var name = data.GetType().FullName.Replace("ViewModel", "View");
+            var fullName = data.GetType().FullName;
+            if (fullName == null) return null;
+            var name = fullName.Replace("ViewModel", "View");
             var type = Type.GetType(name);
 
             if (type != null)

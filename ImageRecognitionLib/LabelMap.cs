@@ -1,6 +1,6 @@
 ﻿namespace ImageRecognitionLib
 {
-    static class LabelMap
+    public static class LabelMap
     {
         public static readonly string[] ClassLabels = new[]
         {

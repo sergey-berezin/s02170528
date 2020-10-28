@@ -5,13 +5,51 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="ImageRecognitionApp.Views.MainWindow"
-        Icon="/Assets/avalonia-logo.ico"
         Title="ImageRecognitionApp">
-
+    
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
+    <Grid>
+         <Button x:Name="chooseFolderButton" Margin="10,10,0,0"
+                 Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                 Content="Choose Dir" HorizontalAlignment="Stretch"
+                 Height="30" Command="{Binding ChooseDirCommand}"/>
+         <Button Content="Choose Folder" Command="ApplicationCommands.Open" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="101"/>
+        <ListBox x:Name="list_box_classes" HorizontalAlignment="Left" Margin="10,35,0,10" Width="181" SelectionChanged="ListBoxClassesSelectionChanged"/>
+        <ListBox x:Name="list_box_images" Margin="442,10,10,10">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Columns="3" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Vertical" VerticalAlignment="Stretch">
+                        <Image Source="{Binding Bitmap}" HorizontalAlignment="Center" VerticalAlignment="Top" />
+                        <TextBlock Text="{Binding Class}" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <Button Content="Stop" HorizontalAlignment="Left" Margin="116,10,0,0" VerticalAlignment="Top" Width="75" Click="Stop"/>
+        <TextBlock x:Name="num_results" HorizontalAlignment="Left" Margin="196,10,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="41" Height="20"/>
+        <ListBox x:Name="list_box_selected_imgs" HorizontalAlignment="Left" Margin="196,10,0,10" Width="241">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Columns="1" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Vertical" VerticalAlignment="Stretch">
+                        <Image Source="{Binding Bitmap}" HorizontalAlignment="Center" VerticalAlignment="Top" />
+                        <TextBlock Text="{Binding Class}" HorizontalAlignment="Center" VerticalAlignment="Bottom" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    </Grid>
 
 </Window>

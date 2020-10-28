@@ -13,20 +13,39 @@ using System.Threading;
 
 namespace ImageRecognitionLib
 {
+    public class LabeledImage
+    {
+        public LabeledImage(string fullName, string label) 
+        {
+            FullName = fullName;
+            Label = label;
+        }
+
+        //name including absolute path
+        public string FullName { get; }
+        public string Name => Path.GetFileName(FullName);
+        public string Label { get; }
+
+        public override string ToString()
+        {
+            return Name + " " + Label;
+        }
+    }
+    public delegate void Output(string message);
     public class Model
     {
         private static readonly ManualResetEvent StopSignal = new ManualResetEvent(false);
         private readonly string _imagePath;
         private readonly InferenceSession _session;
         private ConcurrentQueue<string> _filenames;
-        public delegate void Output(string message);
-        Output log; 
+
+        readonly Output _log; 
 
         public Model(Output log, string imagePath = "./../../../../ImageRecognitionLib")
         {
             _imagePath = imagePath;
             _session = new InferenceSession("./../../../../ImageRecognitionLib/ImageRecognitionLib/resnet152-v2-7.onnx");
-            log += log;
+            _log += log;
 
         }
 
@@ -85,7 +104,9 @@ namespace ImageRecognitionLib
             {
                 prediction += $"Label: {label}, confidence: {confidence}\n";
             }
-            return prediction;
+
+            _log(prediction);
+            return top10.First().Item1;
         }
 
         public void Stop() => StopSignal.Set();
@@ -95,16 +116,16 @@ namespace ImageRecognitionLib
             {
                 if (StopSignal.WaitOne(0))
                 {
-                    log("Stopping thread by signal");
+                    _log("Stopping thread by signal");
                     return;
                 }
 
-                var prediction = Predict(ImageToTensor(name));
-                log(name + prediction);
+                var label = Predict(ImageToTensor(name));
+                _log(new LabeledImage(name, label));
 
             }
 
-            log("Thread has finished working");
+            _log("Thread has finished working");
         }
 
         public void Work()
@@ -139,7 +160,7 @@ namespace ImageRecognitionLib
                 threads[i].Join();
             }
 
-            log("Done!");
+            _log("Done!");
         }
     }
 }
