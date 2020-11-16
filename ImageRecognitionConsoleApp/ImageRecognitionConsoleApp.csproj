@@ -25,4 +25,8 @@
     <ProjectReference Include="..\ImageRecognitionLib\ImageRecognitionLib.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="recurr.py" />
+  </ItemGroup>
+
 </Project>

@@ -43,7 +43,7 @@ namespace ImageRecognitionLib
         private ConcurrentQueue<string> _filenames;
         CancellationTokenSource _cts;
 
-        readonly Output _log; 
+        readonly Output _output; 
         
         bool _finishedProcessing, _wasTerminated;
         public event PropertyChangedEventHandler PropertyChanged;
@@ -60,11 +60,11 @@ namespace ImageRecognitionLib
             }
         }
 
-        public Model(Output log, string imagePath = "./../../../../ImageRecognitionLib")
+        public Model(Output output, string imagePath = "./../../../../ImageRecognitionLib")
         {
             _imagePath = imagePath;
-            _session = new InferenceSession("./ImageRecognitionLib/resnet152-v2-7.onnx");
-            _log += log;
+            _session = new InferenceSession("/Users/maximkurkin/Downloads/Lab1/s02170528/ImageRecognitionLib/resnet152-v2-7.onnx");
+            _output += output;
             _finishedProcessing = false;
             _cts = new CancellationTokenSource();
             IsProcessing = false;
@@ -142,7 +142,7 @@ namespace ImageRecognitionLib
                 }
 
                 var label = Predict(ImageToTensor(name));
-                Console.WriteLine(new LabeledImage(name, label).ToString());
+                _output(new LabeledImage(name, label));
 
             }
 

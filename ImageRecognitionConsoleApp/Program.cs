@@ -8,9 +8,9 @@ namespace ImageRecognition
 {
     class Program
     {
-        private static void PrintLogs(string message)
+        private static void PrintLogs(LabeledImage img)
         {
-            System.Console.WriteLine(message);
+            System.Console.WriteLine(img.Name + " " + img.Label);
         }
         static void Main(string[] args)
         {
@@ -23,7 +23,7 @@ namespace ImageRecognition
                 model.Stop();
                 eArgs.Cancel = true;
             };
-            model.Work();
+            model.WorkAsync(imgPath);
         }
     }
 }
