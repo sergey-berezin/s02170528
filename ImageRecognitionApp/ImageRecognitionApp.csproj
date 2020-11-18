@@ -13,6 +13,8 @@
     </AvaloniaResource>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="5.0.0" />
     <ProjectReference Include="..\ImageRecognitionLib\ImageRecognitionLib.csproj" />
 
     <PackageReference Include="Avalonia" Version="0.9.12" />

@@ -10,10 +10,7 @@ namespace ImageRecognitionApp.Views
         public object Convert(object value, Type targetType, object parameter,
             System.Globalization.CultureInfo culture)
         {
-            if (value == null)
-                return null;
-
-            return new Bitmap((string)value);
+            return value == null ? null : new Bitmap((string)value);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter,
