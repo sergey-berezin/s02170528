@@ -20,12 +20,12 @@ namespace ImageRecognitionApp.ViewModels
         void IsVisibleFilteredImageViewer(bool value);
         void IsVisibleClassFilter(bool value);
     }
-    public class MainWindowViewModel : ViewModelBase
+    public class MainWindowViewModel : ViewModelBase, INotifyPropertyChanged
     {
         UIServices _services;
         Model _model;
         string _imagePath;
-        Output _log;
+        Output _output;
 
         int _processedImagesAmount;
         int ProcessedImagesAmount 
@@ -39,7 +39,7 @@ namespace ImageRecognitionApp.ViewModels
             }
         }
         
-        public new event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler PropertyChanged;
         public List<string> LabelsListComboBox { get; set; }
 
         int _totalAmountOfImagesInDirectory;
@@ -101,8 +101,8 @@ namespace ImageRecognitionApp.ViewModels
             PropertyChanged += ReactToSelectedIndexComboBox;
             ProcessedImageCollection = null;
             _processedImagesAmount = 0;
-            _log = ProcessLabeledImage;
-            _model = new Model(_log);
+            _output = ProcessLabeledImage;
+            _model = new Model(_output);
             _model.PropertyChanged += CheckExecuteCondition;
         }
 

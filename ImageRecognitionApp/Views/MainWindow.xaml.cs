@@ -1,3 +1,4 @@
+using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
@@ -45,8 +46,7 @@ namespace ImageRecognitionApp.Views
 
             return imgPath;
         }
-
-        //dont forget to add methods to hide or visualize
+        
         public void IsVisibleProgressBar(bool value)
         {
             _progressBarTextBlock.IsVisible = value;
@@ -78,17 +78,17 @@ namespace ImageRecognitionApp.Views
             InitializeComponent();
             
             var appUIservices = new MyAppUIServices(this,
-                this.FindControl<ComboBox>("classSelectorComboBox"),
-                this.FindControl<ListBox>("processedImagedListBox"),
-                this.FindControl<ListBox>("chosenClassListBox"),
-                this.FindControl<TextBlock>("processedImageTextBlock"),
-                this.FindControl<TextBlock>("chosenClassTextBlock"),
-                this.FindControl<TextBlock>("progressBarTextBlock"),
-                this.FindControl<TextBlock>("filterComboBoxTextBlock"),
-                this.FindControl<ProgressBar>("completionProgressBar"));
-            var mv = new MainWindowViewModel(appUIservices);
+                this.FindControl<ComboBox>("ClassSelectorComboBox"),
+                this.FindControl<ListBox>("ProcessedImageListBox"),
+                this.FindControl<ListBox>("ChosenClassListBox"),
+                this.FindControl<TextBlock>("ProcessedImageTextBlock"),
+                this.FindControl<TextBlock>("ChosenClassTextBlock"),
+                this.FindControl<TextBlock>("ProgressBarTextBlock"),
+                this.FindControl<TextBlock>("FilterComboBoxTextBlock"),
+                this.FindControl<ProgressBar>("CompletionProgressBar"));
+            var viewModel = new MainWindowViewModel(appUIservices);
 
-            DataContext = mv;
+            DataContext = viewModel;
         }
 
         private void InitializeComponent()
