@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Windows.Input;
 using System.Threading.Tasks;
@@ -9,6 +10,10 @@ using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using Avalonia.Threading;
+using Microsoft.EntityFrameworkCore;
+using System.Drawing;
+using System.Drawing.Imaging;
+
 
 namespace ImageRecognitionApp.ViewModels
 {
@@ -20,7 +25,7 @@ namespace ImageRecognitionApp.ViewModels
         void IsVisibleFilteredImageViewer(bool value);
         void IsVisibleClassFilter(bool value);
     }
-    public class MainWindowViewModel : ViewModelBase, INotifyPropertyChanged
+    public class MainWindowViewModel : INotifyPropertyChanged
     {
         UIServices _services;
         Model _model;
@@ -38,6 +43,8 @@ namespace ImageRecognitionApp.ViewModels
 
             }
         }
+
+        public ApplicationContext db;
         
         public event PropertyChangedEventHandler PropertyChanged;
         public List<string> LabelsListComboBox { get; set; }
@@ -56,6 +63,14 @@ namespace ImageRecognitionApp.ViewModels
         public ICommand ChooseDirCommand { get; set; }
         public ICommand InterruptProcessingCommand { get; set; }
         
+        private readonly ICommand clearCommand;
+        public ICommand Clear { get { return clearCommand; } }
+
+        private readonly ICommand showCommand;
+        public ICommand Show { get { return showCommand; } }
+
+        bool clearFlag = false;
+        
         string _selectedIndexComboBox;
         public string SelectedIndexComboBoxProperty
         {
@@ -69,9 +84,42 @@ namespace ImageRecognitionApp.ViewModels
              }
         }
    
-        ObservableCollection<LabeledImage> _processedImageCollection;
+        ObservableCollection<ImageClassViewModel> classVMs = new ObservableCollection<ImageClassViewModel>();
+        public ObservableCollection<ImageClassViewModel> ClassVMs
+        {
+            get
+            {
+                return classVMs;
+            }
+            set
+            {
+                classVMs = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ClassVMs)));
 
-        private ObservableCollection<LabeledImage> ProcessedImageCollection 
+            }
+        }
+        
+        public ImageClassViewModel selectedImgType { get; set; }
+        ObservableCollection<ImageViewModel> selectedImages = new ObservableCollection<ImageViewModel>();
+
+        public ObservableCollection<ImageViewModel> SelectedImages
+        {
+            get
+            {
+                return selectedImages;
+            }
+            set
+            {
+                selectedImages = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SelectedImages)));
+
+            }
+
+        }
+        
+        ObservableCollection<ImageViewModel> _processedImageCollection;
+
+        private ObservableCollection<ImageViewModel> ProcessedImageCollection 
         {
             get => _processedImageCollection;
             set
@@ -82,8 +130,8 @@ namespace ImageRecognitionApp.ViewModels
             } 
         }
 
-        List<LabeledImage> _filteredImageCollection;
-        public List<LabeledImage> FilteredImageCollection 
+        List<ImageViewModel> _filteredImageCollection;
+        public List<ImageViewModel> FilteredImageCollection 
         { 
             get { return _filteredImageCollection; } 
             set 
@@ -116,24 +164,58 @@ namespace ImageRecognitionApp.ViewModels
         {
             if ((e.PropertyName == nameof(SelectedIndexComboBoxProperty)) && (ProcessedImageCollection != null))
             {
-                var query = ProcessedImageCollection.Where(x => x.Label == SelectedIndexComboBoxProperty);
-                FilteredImageCollection = query.ToList<LabeledImage>();
+                var query = ProcessedImageCollection.Where(x => x.ClassName == SelectedIndexComboBoxProperty);
+                FilteredImageCollection = query.ToList<ImageViewModel>();
             }
         }
 
         void RefreshCollection(object obj, NotifyCollectionChangedEventArgs e)
         {
-            var query = ProcessedImageCollection.Where(x => x.Label == SelectedIndexComboBoxProperty);
-            FilteredImageCollection = query.ToList<LabeledImage>();
+            var query = ProcessedImageCollection.Where(x => x.ClassName == SelectedIndexComboBoxProperty);
+            FilteredImageCollection = query.ToList<ImageViewModel>();
         }
         
-        void ProcessLabeledImage(LabeledImage labeledImage)
+        void ProcessLabeledImage(ImageInfo labeledImage)
         {
             Dispatcher.UIThread.InvokeAsync(() =>
             {
                 ProcessedImagesAmount++;
-                ProcessedImageCollection.Add(labeledImage);
+                //ProcessedImageCollection.Add(labeledImage);
             });
+        }
+        string _stats;
+        public string Statistics
+        {
+            get
+            {
+                return _stats;
+            }
+            set
+            {
+                _stats = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Statistics)));
+            }
+        }
+        public void GetStatistics()
+        {
+            string res = "";
+            var q = from img in db.Images select img;
+            foreach(var img in q)
+            {
+                res += img.Path + "; Number of requests: " + img.count + "\n";
+            }
+            Statistics = res;
+        }
+        private byte[] ConvertImageToByteArray(string fileName)
+        {
+            Bitmap bitMap = new Bitmap(fileName);
+            ImageFormat bmpFormat = bitMap.RawFormat;
+            var imageToConvert = System.Drawing.Image.FromFile(fileName);
+            using (MemoryStream ms = new MemoryStream())
+            {
+                imageToConvert.Save(ms, bmpFormat);
+                return ms.ToArray();
+            }
         }
 
         void Init() 
@@ -175,16 +257,79 @@ namespace ImageRecognitionApp.ViewModels
             _services.IsVisibleClassFilter(true);
             _processedImagesAmount = 0;
             PercentProcessed = 0;
-            ProcessedImageCollection = new ObservableCollection<LabeledImage>();
+            ProcessedImageCollection = new ObservableCollection<ImageViewModel>();
             ProcessedImageCollection.CollectionChanged += RefreshCollection;
             _imagePath = null;
             _imagePath = await _services.ShowOpenDialogAsync();
             _services.IsVisibleProgressBar(true);
+            db = new ApplicationContext();
+            classVMs = new ObservableCollection<ImageViewModel>();
 
             if (_imagePath != null) 
             {
                 _totalAmountOfImagesInDirectory = CountAmountOfImagesInDirectory();
                 await _model.WorkAsync(_imagePath);
+                foreach (var file in Directory.GetFiles(_imagePath))
+                { 
+                    bool flag = false;
+                    var fileInfo = new FileInfo(file);
+                    _processedImageCollection.Add(new ImageViewModel(fileInfo.FullName, fileInfo.Name));
+                    foreach (var img in db.Images)
+                    {
+                        if (fileInfo.FullName == img.Path)
+                        {
+                            var code1 = ConvertImageToByteArray(fileInfo.FullName);
+                            IStructuralEquatable equ = code1;
+                            var code2 = img.Details.Image;
+                            if (equ.Equals(code2, EqualityComparer<object>.Default))
+                            {
+                                img.count++;
+
+                                db.SaveChanges();
+                                _processedImageCollection.Add(new ImageViewModel(fileInfo.FullName, fileInfo.Name, img.Confidence, img.ClassName));
+
+                                flag = true;
+                                _processedImagesAmount++;
+
+                                Dispatcher.BeginInvoke(new Action(() =>
+                                {
+                                    if (ClassVMs.Any())
+                                    {
+                                        bool flag1 = false;
+                                        foreach (var imgClass in ClassVMs)
+                                        {
+                                            if (imgClass.Type == img.ClassName)
+                                            {
+                                                imgClass.Count++;
+                                                flag1 = true;
+                                                break;
+                                            }
+                                        }
+                                        if (!flag1)
+                                        {
+                                            ClassVMs.Add(new ImageClassViewModel(img.ClassName, 1));
+
+                                        }
+
+                                    }
+                                    else
+                                    {
+                                        ClassVMs.Add(new ImageClassViewModel(img.ClassName, 1));
+
+                                    }
+                                }));
+                                break;
+                            }
+
+                        }
+                    }
+
+                    if (!flag)
+                    {
+                        _processedImageCollection.Add(new ImageViewModel(fileInfo.FullName, fileInfo.Name));
+                    }
+                    
+                }
             }
             _services.IsVisibleProgressBar(false);
         }
@@ -194,6 +339,16 @@ namespace ImageRecognitionApp.ViewModels
             LabelsListComboBox = new List<string>();
             foreach (var t in LabelMap.ClassLabels)
                 LabelsListComboBox.Add(t);
+        }
+        
+        public void ClearDB()
+        {
+            //db.Database.ExecuteSqlRaw("DELETE from Images");
+            db.Images.RemoveRange(db.Images);
+
+            db.SaveChanges();
+            clearFlag = true;
+
         }
     }
 }

@@ -16,25 +16,7 @@ using System.Threading.Tasks;
 
 namespace ImageRecognitionLib
 {
-    public class LabeledImage
-    {
-        public LabeledImage(string fullName, string label) 
-        {
-            FullName = fullName;
-            Label = label;
-        }
-
-        //name including absolute path
-        public string FullName { get; }
-        public string Name => Path.GetFileName(FullName);
-        public string Label { get; }
-
-        public override string ToString()
-        {
-            return Name + " " + Label;
-        }
-    }
-    public delegate void Output(LabeledImage image);
+    public delegate void Output(ImageInfo image);
     public class Model: INotifyPropertyChanged
     {
         private static readonly ManualResetEvent StopSignal = new ManualResetEvent(false);
@@ -104,7 +86,7 @@ namespace ImageRecognitionLib
             return input;
         }
 
-        private string Predict(DenseTensor<float> input)
+        private void Predict(string name, DenseTensor<float> input)
         {
             //setup inputs and run session
             var inputs = new List<NamedOnnxValue> {NamedOnnxValue.CreateFromTensor("data", input)};
@@ -114,20 +96,16 @@ namespace ImageRecognitionLib
             var output = results.First().AsEnumerable<float>();
             var sum = output.Sum(x => (float)Math.Exp(x));
             var softmax = output.Select(x => (float)Math.Exp(x) / sum);
-            
-            //select labels with top 10 probabilities
-            var top10 = softmax.Select((x, i) =>
-                    new Tuple<string, float>(LabelMap.ClassLabels[i], x))
-                    .OrderByDescending(x => x.Item2)
-                    .Take(10);
-            var prediction = "\n";
-            foreach (var (label, confidence) in top10.ToList())
-            {
-                prediction += $"Label: {label}, confidence: {confidence}\n";
-            }
+            var tmp = new ImageInfo();
 
-            Console.WriteLine(prediction);
-            return top10.First().Item1;
+            //select labels with top 10 probabilities
+            foreach (var p in softmax
+                .Select((x, g) => new { Label = LabelMap.ClassLabels[g], Confidence = x })
+                .OrderByDescending(x => x.Confidence)
+                .Take(10))
+                tmp.AddInfo(name, p.Label, p.Confidence);
+
+            _output(tmp);
         }
 
         public void Stop() => StopSignal.Set();
@@ -141,8 +119,7 @@ namespace ImageRecognitionLib
                     break;
                 }
 
-                var label = Predict(ImageToTensor(name));
-                _output(new LabeledImage(name, label));
+                Predict(name, ImageToTensor(name));
 
             }
 

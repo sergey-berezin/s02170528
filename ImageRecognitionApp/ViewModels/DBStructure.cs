@@ -5,31 +5,26 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ImageRecognitionApp.ViewModels
 {
-    class DBStructure
+    public class ImageDetails
     {
-        [Key]
-        public int ImageId { get; set; }
-        public string ImageName { get; set; }
-        public int ImageLabel { get; set; }
-        public ICollection<ImageDetailDB> AdditionalInfo { get; set; }
+        public int Id { get; set; }
+        public byte[] Image { get; set; }
     }
-    
-    class ImageDetailDB
+    public class ImageData
     {
-        [Key]
-        public int ImageDetailId { get; set; }
-
-        //byte sequence represents colored image
-        public byte[] ByteImage { get; set; }
-        public ICollection<DBStructure> PrimaryInfo { get; set; } 
+        public int Id { get; set; }
+        public string Path { get; set; }
+        public string Name { get; set; }
+        public string ClassName { get; set; }
+        public float Confidence { get; set; }
+        virtual public ImageDetails Details { get; set; }
+        public int count { get; set; }
     }
 
-    class MyContext : DbContext
+    public class ApplicationContext : DbContext
     {
-        public DbSet<DBStructure> ProcessedImages { get; set; }
-        public DbSet<ImageDetailDB> ImageDetails { get; set;}
-
+        public DbSet<ImageData> Images { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder o)
-            => o.UseSqlite("Data Source=../ModelView/DataBase.db");
+            => o.UseSqlite("Data Source=/Users/maximkurkin/Downloads/Lab1/s02170258/ImageRecognitionApp/ViewModels/DataBase.db");
     }
 }
