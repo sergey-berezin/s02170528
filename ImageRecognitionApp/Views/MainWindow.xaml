@@ -35,6 +35,14 @@
                 Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
                 Content="Interrupt" HorizontalAlignment="Stretch"
                 Height="30" IsVisible="True" Command="{Binding InterruptProcessingCommand}"/>
+        <Button x:Name="ClearButton" Margin="5,5,5,5"
+                Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2"
+                Content="Interrupt" HorizontalAlignment="Stretch"
+                Height="30" IsVisible="True" Command="{Binding ClearCommand}"/>
+        <Button x:Name="ShowButton" Margin="5,5,5,5"
+                Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2"
+                Content="Interrupt" HorizontalAlignment="Stretch"
+                Height="30" IsVisible="True" Command="{Binding ShowCommand}"/>
 
         <TextBlock x:Name="ProcessedImageTextBlock" 
                    Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2"

@@ -45,6 +45,7 @@ namespace ImageRecognitionApp.ViewModels
         }
 
         public ApplicationContext db;
+        public Dispatcher dispatcher;
         
         public event PropertyChangedEventHandler PropertyChanged;
         public List<string> LabelsListComboBox { get; set; }
@@ -63,11 +64,8 @@ namespace ImageRecognitionApp.ViewModels
         public ICommand ChooseDirCommand { get; set; }
         public ICommand InterruptProcessingCommand { get; set; }
         
-        private readonly ICommand clearCommand;
-        public ICommand Clear { get { return clearCommand; } }
-
-        private readonly ICommand showCommand;
-        public ICommand Show { get { return showCommand; } }
+        public ICommand ClearCommand { get; set; }
+        public ICommand ShowCommand { get; set; }
 
         bool clearFlag = false;
         
@@ -229,6 +227,9 @@ namespace ImageRecognitionApp.ViewModels
             ChooseDirCommand = new RelayCommand(async (object o) => await TryChooseDirectory());
             InterruptProcessingCommand = new RelayCommand((object o) => TryToInterrupt(), 
                                                           (object o) => CanExecuteInterruptCommand());
+            ClearCommand = new RelayCommand(_ => ClearDB(), _ => db != null);
+            ShowCommand = new RelayCommand( _ => GetStatistics(), _ => true);
+
         }
 
         private bool CanExecuteInterruptCommand()
@@ -263,7 +264,7 @@ namespace ImageRecognitionApp.ViewModels
             _imagePath = await _services.ShowOpenDialogAsync();
             _services.IsVisibleProgressBar(true);
             db = new ApplicationContext();
-            classVMs = new ObservableCollection<ImageViewModel>();
+            classVMs = new ObservableCollection<ImageClassViewModel>();
 
             if (_imagePath != null) 
             {
@@ -291,7 +292,7 @@ namespace ImageRecognitionApp.ViewModels
                                 flag = true;
                                 _processedImagesAmount++;
 
-                                Dispatcher.BeginInvoke(new Action(() =>
+                                await Dispatcher.UIThread.InvokeAsync(() =>
                                 {
                                     if (ClassVMs.Any())
                                     {
@@ -317,7 +318,7 @@ namespace ImageRecognitionApp.ViewModels
                                         ClassVMs.Add(new ImageClassViewModel(img.ClassName, 1));
 
                                     }
-                                }));
+                                });
                                 break;
                             }
 
